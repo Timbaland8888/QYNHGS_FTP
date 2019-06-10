@@ -3,7 +3,10 @@
 #Arthor:Timbaland
 #date:20180124
 import os
-import sys, os
+import sys, os,time
+import configparser,codecs
+import pymysql
+
 # 连接mysql数据库参数字段
 # con = None
 # ip = '172.25.1.13'
@@ -69,29 +72,44 @@ def mkdir(path):
         return False
 def acl_dir(user):
     #切换工作目录D
-    os.chdir('H:\\')
+    os.chdir('%s:\\' %(cf.get('set_disk','set_disk')))
     # #添加对应目录的权限
-    cre_acl = 'cacls %s /e /t /g %s:F' %(user,'Everyone')
-    print(cre_acl)
-    os.popen(cre_acl)
+    cre_acl_ag = 'cacls %s /e /t /g %s:F' % (user, 'Everyone')
+    # cre_acl = 'cacls %s /e /t /g %s:F' %(user,'Domain Users')
+    # print(cre_acl)
+    print(cre_acl_ag)
+    os.popen(cre_acl_ag)
+    time.sleep(2)
+    # os.popen(cre_acl)
     # #取消对应目录的权限
     # del_acl = 'cacls %s /e /t /c /r users' %(user)
     # os.popen(del_acl)
     #共享对应目录
-    share_dir = 'net share %s=H:\\%s' %(user,user)
+    share_dir = r'net share %s=%s:\%s' %(user,cf.get('set_disk','set_disk'),user)
     print (share_dir)
     os.popen(share_dir)
 
 if __name__ == '__main__':
-    #basic dir
-    bascdir = 'H:\\'
 
-    for f in range(1,70):
+    cf = configparser.ConfigParser()
+    # cf.readfp(codecs.open('config.ini', "r", "utf-8-sig"))
+    cf.read_file(codecs.open('config.ini', "r", "utf-8-sig"))
+    #basic dir目录
+    bascdir = '%s:\\' %(cf.get('set_disk','set_disk'))
+
+    for f in range(int(cf.get('set_nu','set_start')),int(cf.get('set_nu','set_end'))):
         # 定义要创建的目录
-        mkpath = bascdir + str('T13%02d' %(f))
+        mkpath = bascdir + str('%s%02d' %(cf.get('set_class','set_class'),f))
         # 调用函数
         mkdir(mkpath)
-        acl_dir('T13%02d' %(f))
+        acl_dir('%s%02d' %(cf.get('set_class','set_class'),f))
 
-
+    con = pymysql.connect('10.10.9.235', 'root', '123456', 'nhgs')
+    cursor = con.cursor()
+    for i in range(int(cf.get('set_nu','set_start')),int(cf.get('set_nu','set_end'))):
+        sql = "insert into student_info(sid,pwd) values('%s%02d','%s')" % (cf.get('set_class','set_class'),i,cf.get('set_pwd','set_pwd'))
+        print(sql)
+        cursor.execute(sql)
+        con.commit()
+    cursor.close()
 
